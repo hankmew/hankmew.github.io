@@ -1,0 +1,24 @@
+{{ define "ref" }}
+{{ partial "ref-tag.html" . }}
+{{ end }}
+
+{{ define "main" }}
+<div class="box-main-min bg-white box-main-padding box-shadow-without-top box-tag">
+    {{ range .Data.Pages.ByTitle }}
+
+    <div class="box-lift-line">
+    <div class="box-lift-point box-archive-key">
+        <a name="{{ .Title }}">{{.Title}}</a>
+    </div>
+    <ul>
+        {{ range .Pages }}
+        <li class="box-lift-point">
+            <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+        </li>
+        {{ end }}
+    </ul>
+    </div>
+
+    {{ end }}
+</div>
+{{ end }}

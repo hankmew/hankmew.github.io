@@ -1,0 +1,34 @@
+<div class="box-logo">
+    <a href="{{ .Site.BaseURL }}">
+        {{ .Site.Params.Title }}
+    </a>
+    <p>{{ .Site.Params.Subtitle }}</p>
+    <div class="box-menu-toggle" id="id-menu-toggle">
+        <button>
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+</div>
+<nav class="box-nav bg-white box-nav-min-hiden" id="id-menu">
+    {{ $activedClass := "box-nav-active" }}
+    {{ $current := .RelPermalink }}
+    {{ range .Site.Menus.main }}
+    {{ $actived := "" }}
+    {{ if eq (.URL | relURL) "/" }}
+    {{ if eq $current "/" }}
+    {{ $actived = $activedClass }}
+    {{ end }}
+    {{ else }}
+    {{ if hasPrefix  $current (.URL | relURL) }}
+    {{ $actived = $activedClass }}
+    {{ end }}
+    {{ end }}
+    <div class="{{ $actived }}">
+        <a href="{{ .URL | urlize }}">
+            <i class="fa fa-fw fa-home {{ .Pre }}"></i>{{ .Name }}
+        </a>
+    </div>
+    {{ end }}
+</nav>

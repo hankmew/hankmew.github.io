@@ -1,0 +1,17 @@
+{{ define "ref" }}
+{{ partial "ref-overview.html" . }}
+{{ end }}
+
+{{ define "main" }}
+<div class="box-main-min bg-white box-main-padding box-shadow-without-top box-about">
+    <article>
+        <div class="box-article-title">
+            {{ .Title }}
+        </div>
+        <div class="typ-article">
+            {{ .Content }}
+        </div>
+    </article>
+    {{ partial "license.html" . }}
+</div>
+{{ end }}

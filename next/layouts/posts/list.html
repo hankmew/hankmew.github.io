@@ -1,0 +1,28 @@
+{{ define "ref" }}
+{{ partial "ref-archive.html" . }}
+{{ end }}
+
+{{ define "main" }}
+
+<div class="box-main-min bg-white box-main-padding box-shadow-without-top box-archive">
+    <div class="box-lift-line">
+        <div class="box-lift-point">
+            Um..! {{ len (where .Site.Pages "Kind" "page") }} posts in total. Keep on posting.
+        </div>
+        {{ range (where .Site.Pages "Kind" "page").GroupByDate "2006" }}
+        <div class="box-lift-point">
+                <div class="box-archive-year"><a name={{ .Key }}>{{ .Key }}</a></div>
+        </div>
+        <ul>
+            {{ range .Pages }}
+            <li class="box-lift-point">
+                <span class="box-archive-li-year ">{{ .Date.Format "01-02" }}</span>
+                <a href="{{ .RelPermalink }}" title="{{ .Title }}">{{ .Title }}</a>
+            </li>
+            {{ end }}
+        </ul>
+        {{ end }}
+    </div>
+</div>
+
+{{ end }}

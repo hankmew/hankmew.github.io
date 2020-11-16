@@ -1,0 +1,32 @@
+<div class="box-overview">
+    <div class="box-overview-author">
+        <img src="/avatar.jpg" alt="avatar">
+        <p>{{.Site.Params.Author}}</p>
+        <div>{{.Site.Params.Description}}</div>
+    </div>
+    <div class="box-overview-counter">
+        <div class="box-overview-counter-separator">
+            <div>{{ len (where .Site.Pages "Kind" "page") }}</div>
+            <i>posts</i>
+        </div>
+        <div>
+            {{$scratch := newScratch}}
+            {{ range (where .Site.Pages "Kind" "page" )}}
+            {{$scratch.Add "total" .WordCount}}
+            {{ end }}
+            {{ $w := $scratch.Get "total" }}
+            {{ $s := substr $w 0 -3 }}
+            {{ if ge $w 100 }}
+            <div>{{ $s }}k</div>
+            {{ else }}
+            <div>{{ $w }}</div>
+            {{ end }}
+            <i>words</i>
+        </div>
+    </div>
+    <div class="box-overview-contact">
+        {{ range .Site.Menus.overview }}
+        <a target="_blank" href="{{ .URL }}"><i class="fa fa-fw {{ .Pre }}"></i>{{ .Name }}</a>
+        {{ end }}
+    </div>
+</div>

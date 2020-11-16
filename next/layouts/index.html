@@ -1,0 +1,50 @@
+{{ define "ref" }}
+{{ partial "ref-overview.html" . }}
+{{ end }}
+
+{{ define "main" }}
+
+{{ range $index,$data := (where .Paginator.Pages "Kind" "page") }}
+<article class="box-page box-shadow bg-white">
+    <div class="box-page-title">
+        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+    </div>
+    <div class="box-page-meta">
+        <i class="fa fa-fw fa-calendar-check-o"></i>
+        {{ .Date.Format "2006/01/02" }}
+        <span>|</span>
+        <i class="fa fa-fw fa-keyboard-o"></i>
+        {{ .WordCount }}
+        <span>|</span>
+        <i class="fa fa-fw fa-tags"></i>
+        {{ delimit .Params.Tags ", " }}
+    </div>
+    <div class="box-page-summary">
+        {{ .Summary | safeHTML }}
+        <a href="{{ .RelPermalink }}"><div>more&nbsp;&gt;&gt;</div></a>
+    </div>
+</article>
+{{ end }}
+
+{{ with .Paginator }}
+{{ if gt .TotalPages 1 }}
+<div class="box-pagination box-shadow bg-white">
+    {{ if .HasPrev }}
+    <a href="{{ .Prev.URL | relURL }}"><i class="fa fa-chevron-left"></i></a>
+    {{ end }}
+
+    {{ range .Pagers }}
+    <a href="{{ .URL | relURL }}" {{ if eq .PageNumber $.Paginator.PageNumber }} class="box-pagination-current"
+        {{ end }}>
+        {{ .PageNumber }}
+    </a>
+    {{ end }}
+
+    {{ if .HasNext }}
+    <a href="{{ .Next.URL | relURL }}"><i class="fa fa-chevron-right"></i></a>
+    {{ end }}
+</div>
+{{ end }}
+{{ end }}
+
+{{end}}

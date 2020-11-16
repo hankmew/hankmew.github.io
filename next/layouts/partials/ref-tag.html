@@ -1,0 +1,10 @@
+<div class="box-ref">
+    <ul>
+        {{ range .Data.Pages.ByTitle }}
+        <li>
+            <a href="#{{.Title}}">{{.Title}}</a>
+        </li>
+        {{ end }}
+    </ul>
+</div>
+

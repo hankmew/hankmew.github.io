@@ -1,0 +1,49 @@
+{{ define "ref" }}
+{{ partial "ref-toc.html" . }}
+{{ end }}
+
+{{ define "main" }}
+<div class="box-main-min bg-white box-main-padding box-shadow-without-top box-post">
+    <article>
+        <div class="box-post-title">
+            {{ .Title }}
+        </div>
+        <div class="box-post-meta">
+            <i class="fa fa-fw fa-calendar-check-o"></i>
+            {{ .Date.Format "2006/01/02" }}
+            <span>|</span>
+            <i class="fa fa-fw fa-keyboard-o"></i>
+            {{ .WordCount }}
+            <span>|</span>
+            <i class="fa fa-fw fa-tags"></i>
+            {{ delimit .Params.Tags ", " }}
+        </div>
+        <div class="typ-article">
+            {{ .Content }}
+        </div>
+    </article>
+
+    {{ partial "license.html" . }}
+
+    <div class="box-article-nav">
+
+            {{if .Next}}
+            <a href="{{.Next.RelPermalink}}">
+                <i class="fa fa-chevron-left"></i><span>{{.Next.Title}}</span>
+            </a>
+            {{else}}
+            &ensp;
+            {{end}}
+
+            {{if .Prev}}
+            <a href="{{.Prev.RelPermalink}}">
+                <span>{{.Prev.Title}}</span><i class="fa fa-chevron-right"></i>
+            </a>
+            {{else}}
+            &ensp;
+            {{end}}
+
+    </div>
+
+</div>
+{{ end }}
