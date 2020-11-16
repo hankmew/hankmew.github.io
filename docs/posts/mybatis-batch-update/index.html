@@ -1,16 +1,141 @@
-<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>批量执行SQL-以MyBatis为例 | 搬砖手账</title><link rel=icon type=image/x-icon><link rel=stylesheet href=//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css><link rel=stylesheet href=//cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css><link rel=stylesheet href=//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/styles/rainbow.min.css><link rel=stylesheet href="/static/style.min.css?v=822c8e" integrity media=screen></head><body><header class="lay-header box-header"></header><div class=lay-wrapper><aside class="lay-aside box-aside"><div class=box-shadow-without-top><div class=box-logo><a href=https://hankliuhuan.com/>搬砖手账</a><p>沉心营浮世，热血饮凉冰</p><div class=box-menu-toggle id=id-menu-toggle><button>
-<span></span><span></span><span></span></button></div></div><nav class="box-nav bg-white box-nav-min-hiden" id=id-menu><div><a href=/><i class="fa fa-fw fa-home fa-home"></i>Home</a></div><div><a href=/about><i class="fa fa-fw fa-home fa-user-md"></i>About</a></div><div class=box-nav-active><a href=/posts><i class="fa fa-fw fa-home fa-archive"></i>Archives</a></div><div><a href=/tags><i class="fa fa-fw fa-home fa-tag"></i>Tags</a></div></nav></div><div class="box-ref box-shadow bg-white" id=id-fix><div class=box-toc><nav id=TableOfContents><ul><li><a href=#场景预设>场景预设</a></li><li><a href=#第一种方式>第一种方式</a></li><li><a href=#第二种方法>第二种方法</a></li><li><a href=#第三种方法>第三种方法</a></li><li><a href=#选择思路>选择思路</a></li><li><a href=#其他>其他</a></li></ul></nav></div><div class=box-backtop id=id-backtop><i class="fa fa-arrow-up"></i><span></span></div></div></aside><main class="lay-main box-main"><div class="box-main-min bg-white box-main-padding box-shadow-without-top box-post"><article><div class=box-post-title>批量执行SQL-以MyBatis为例</div><div class=box-post-meta><i class="fa fa-fw fa-calendar-check-o"></i>2019/04/12
-<span>|</span>
-<i class="fa fa-fw fa-keyboard-o"></i>1459
-<span>|</span>
-<i class="fa fa-fw fa-tags"></i>mysql, mybatis</div><div class=typ-article><p>WEB项目的定时任务，经常会用到批量更新的场景。MyBatis框架操作MySQL的技术栈如何批量更新问题，这个问题网络上却没有一个最佳实践。最近遇到了这个问题，下面分享一下实践方案。</p><h2 id=场景预设>场景预设</h2><p>每天凌晨零点之后开始，计算用户收益额度，写入数据库中。数据表<code>t_financial</code>简略如下：</p><pre><code>f_id //主键
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    
+    <title>批量执行SQL-以MyBatis为例 | 搬砖手账</title>
+    
+    <link rel="icon" type="image/x-icon" />
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css" />
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/styles/rainbow.min.css" />
+    
+    
+    <link rel="stylesheet" href="/static/style.min.css?v=822c8e" integrity="" media="screen" />
+
+    
+</head>
+
+<body>
+    <header class="lay-header box-header"></header>
+    <div class="lay-wrapper">
+        <aside class="lay-aside box-aside">
+            <div class="box-shadow-without-top">
+                <div class="box-logo">
+    <a href="https://hankmew.com/">
+        搬砖手账
+    </a>
+    <p>沉心营浮世，热血饮凉冰</p>
+    <div class="box-menu-toggle" id="id-menu-toggle">
+        <button>
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+</div>
+<nav class="box-nav bg-white box-nav-min-hiden" id="id-menu">
+    
+    
+    
+    
+    
+    
+    
+    <div class="">
+        <a href="/">
+            <i class="fa fa-fw fa-home fa-home"></i>Home
+        </a>
+    </div>
+    
+    
+    
+    
+    
+    <div class="">
+        <a href="/about">
+            <i class="fa fa-fw fa-home fa-user-md"></i>About
+        </a>
+    </div>
+    
+    
+    
+    
+    
+    
+    
+    <div class="box-nav-active">
+        <a href="/posts">
+            <i class="fa fa-fw fa-home fa-archive"></i>Archives
+        </a>
+    </div>
+    
+    
+    
+    
+    
+    <div class="">
+        <a href="/tags">
+            <i class="fa fa-fw fa-home fa-tag"></i>Tags
+        </a>
+    </div>
+    
+</nav>
+            </div>
+            <div class="box-ref box-shadow bg-white" id="id-fix">
+                
+<div class="box-toc">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#场景预设">场景预设</a></li>
+    <li><a href="#第一种方式">第一种方式</a></li>
+    <li><a href="#第二种方法">第二种方法</a></li>
+    <li><a href="#第三种方法">第三种方法</a></li>
+    <li><a href="#选择思路">选择思路</a></li>
+    <li><a href="#其他">其他</a></li>
+  </ul>
+</nav>
+</div>
+
+                <div class="box-backtop" id="id-backtop">
+    <i class="fa fa-arrow-up"></i><span></span>
+</div>
+            </div>
+        </aside>
+        <main class="lay-main box-main">
+            
+<div class="box-main-min bg-white box-main-padding box-shadow-without-top box-post">
+    <article>
+        <div class="box-post-title">
+            批量执行SQL-以MyBatis为例
+        </div>
+        <div class="box-post-meta">
+            <i class="fa fa-fw fa-calendar-check-o"></i>
+            2019/04/12
+            <span>|</span>
+            <i class="fa fa-fw fa-keyboard-o"></i>
+            1459
+            <span>|</span>
+            <i class="fa fa-fw fa-tags"></i>
+            mysql, mybatis
+        </div>
+        <div class="typ-article">
+            <p>WEB项目的定时任务，经常会用到批量更新的场景。MyBatis框架操作MySQL的技术栈如何批量更新问题，这个问题网络上却没有一个最佳实践。最近遇到了这个问题，下面分享一下实践方案。</p>
+<h2 id="场景预设">场景预设</h2>
+<p>每天凌晨零点之后开始，计算用户收益额度，写入数据库中。数据表<code>t_financial</code>简略如下：</p>
+<pre><code>f_id //主键
 f_create_at //创建时间
 f_updated_at //更新时间
 f_version //版本号
 f_state //状态
 f_amount //
 ...
-</code></pre><h2 id=第一种方式>第一种方式</h2><p>使用MyBatis的动态语句，foreach循环将多个update语句拼接在一起。JDBC的连接要设置<code>allowMultiQueries=true</code>。</p><pre><code>&lt;update id=&quot;updateBatch&quot;  parameterType=&quot;java.util.List&quot;&gt;  
+</code></pre>
+<h2 id="第一种方式">第一种方式</h2>
+<p>使用MyBatis的动态语句，foreach循环将多个update语句拼接在一起。JDBC的连接要设置<code>allowMultiQueries=true</code>。</p>
+<pre><code>&lt;update id=&quot;updateBatch&quot;  parameterType=&quot;java.util.List&quot;&gt;  
     &lt;foreach collection=&quot;list&quot; item=&quot;item&quot; index=&quot;index&quot; open=&quot;&quot; separator=&quot;;&quot; close=&quot;&quot;&gt;
         update t_financial
         &lt;set&gt;
@@ -40,8 +165,22 @@ f_amount //
         &lt;/where&gt;
     &lt;/foreach&gt;      
 &lt;/update&gt;
-</code></pre><p>拼接完成出来的sql语句如下：</p><pre><code>update t_financial set f_updated_at=?,f_version=?,f_state=?f_amount=? where f_id=? and f_version=?;update t_financial set f_updated_at=?,f_version=?,f_state=?f_amount=? where f_id=? and f_version=?;...
-</code></pre><p>优点：</p><ul><li>写法简单</li></ul><p>缺点：</p><ul><li>只是减少了网络调用，但MySQL执行时仍然是一条条的提交。性能没有显著提升。（其实这不是批量执行，而只能称之为是遍历执行。）</li><li>受MySQL的<code>max_allowed_packet</code>参数影响（默认1M），如果每次拼接的sql语句超过设置范围，会被MySQL拒绝执行。</li></ul><h2 id=第二种方法>第二种方法</h2><p>使用MyBatis的动态语句，foreach循环将多个case when then拼接成一条语句。</p><pre><code>&lt;update id=&quot;updateBatch&quot; parameterType=&quot;java.util.List&quot;&gt;
+</code></pre>
+<p>拼接完成出来的sql语句如下：</p>
+<pre><code>update t_financial set f_updated_at=?,f_version=?,f_state=?f_amount=? where f_id=? and f_version=?;update t_financial set f_updated_at=?,f_version=?,f_state=?f_amount=? where f_id=? and f_version=?;...
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>写法简单</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>只是减少了网络调用，但MySQL执行时仍然是一条条的提交。性能没有显著提升。（其实这不是批量执行，而只能称之为是遍历执行。）</li>
+<li>受MySQL的<code>max_allowed_packet</code>参数影响（默认1M），如果每次拼接的sql语句超过设置范围，会被MySQL拒绝执行。</li>
+</ul>
+<h2 id="第二种方法">第二种方法</h2>
+<p>使用MyBatis的动态语句，foreach循环将多个case when then拼接成一条语句。</p>
+<pre><code>&lt;update id=&quot;updateBatch&quot; parameterType=&quot;java.util.List&quot;&gt;
     update t_financial
     &lt;set&gt;
         &lt;foreach collection=&quot;list&quot; item=&quot;item&quot; index=&quot;index&quot; open=&quot;f_updated_at = case f_id&quot; separator=&quot; &quot; close=&quot;end,&quot;&gt;
@@ -81,7 +220,9 @@ f_amount //
         &lt;/foreach&gt;
     &lt;/where&gt;
 &lt;/update&gt;
-</code></pre><p>拼接之后的sql语句如下</p><pre><code>update t_financial set 
+</code></pre>
+<p>拼接之后的sql语句如下</p>
+<pre><code>update t_financial set 
 f_updated_at = case f_id
     when ? then ?
     when ? then ?
@@ -105,7 +246,19 @@ end
 where 
     (f_id = ? and f_version = ?) or
     (f_id = ? and f_version = ?)
-</code></pre><p>优点：</p><ul><li>性能提升与编写难度比较均衡</li></ul><p>缺点：</p><ul><li>如果每次执行的sql语句大于MySQL设置的最大传送大小，会被MySQL拒绝。</li></ul><h2 id=第三种方法>第三种方法</h2><p>通过MyBatis使用JDBC的executeBatch()方法。JDBC的连接要设置<code>rewriteBatchedStatements=true</code></p><p>mapper.xml写法如下：</p><pre><code>&lt;update id=&quot;update&quot;&gt;  
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>性能提升与编写难度比较均衡</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>如果每次执行的sql语句大于MySQL设置的最大传送大小，会被MySQL拒绝。</li>
+</ul>
+<h2 id="第三种方法">第三种方法</h2>
+<p>通过MyBatis使用JDBC的executeBatch()方法。JDBC的连接要设置<code>rewriteBatchedStatements=true</code></p>
+<p>mapper.xml写法如下：</p>
+<pre><code>&lt;update id=&quot;update&quot;&gt;  
         update t_financial
         &lt;set&gt;
             &lt;if test=&quot;updatedAt != null&quot;&gt;
@@ -133,7 +286,9 @@ where
             &lt;/if&gt;
         &lt;/where&gt;
 &lt;/update&gt;
-</code></pre><p>MyBatis全局可以设置为ExecutorType.REUSE，会重用PreparedStatements而不是每次都新建，从而提升性能。局部临时将session模式设置为ExecutorType.BATCH，调用代码如下：</p><pre><code>@Resource
+</code></pre>
+<p>MyBatis全局可以设置为ExecutorType.REUSE，会重用PreparedStatements而不是每次都新建，从而提升性能。局部临时将session模式设置为ExecutorType.BATCH，调用代码如下：</p>
+<pre><code>@Resource
 private SqlSessionTemplate sqlSessionTemplate;
 
 public void batchUpdate(List&lt;Object&gt; financialList) {
@@ -147,17 +302,77 @@ public void batchUpdate(List&lt;Object&gt; financialList) {
         e.printStackTrace();
     }
 }
-</code></pre><p>优点：</p><ul><li>使用JDBC原生支持的批量方案，性能有保障</li></ul><p>缺点：</p><ul><li>需要手动封装事务等原本由MyBatis封装处理的问题，手动处理却没有考虑到则容易造成事故。</li><li>使用ExecutorType.BATCH模式时，insert在事务没有提交前无法获取到自增id。在某些业务下不符合要求。谨慎设置全局BATCH，以免影响其他正常运行的业务。</li></ul><h2 id=选择思路>选择思路</h2><ul><li>从性能考虑，不要使用第一种方式。</li><li>性能和写法平衡上，尽量考虑使用第二种方式，但是要注意每次不要拼接大量数据。</li><li>如果每次需要拼接大量数据且无特殊业务需求可以考虑第三种。但是要注意做好封装。</li></ul><h2 id=其他>其他</h2><p>同时也要打开JDBC的预编译缓存的选项。</p><pre><code># 开启服务端预编译
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>使用JDBC原生支持的批量方案，性能有保障</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>需要手动封装事务等原本由MyBatis封装处理的问题，手动处理却没有考虑到则容易造成事故。</li>
+<li>使用ExecutorType.BATCH模式时，insert在事务没有提交前无法获取到自增id。在某些业务下不符合要求。谨慎设置全局BATCH，以免影响其他正常运行的业务。</li>
+</ul>
+<h2 id="选择思路">选择思路</h2>
+<ul>
+<li>从性能考虑，不要使用第一种方式。</li>
+<li>性能和写法平衡上，尽量考虑使用第二种方式，但是要注意每次不要拼接大量数据。</li>
+<li>如果每次需要拼接大量数据且无特殊业务需求可以考虑第三种。但是要注意做好封装。</li>
+</ul>
+<h2 id="其他">其他</h2>
+<p>同时也要打开JDBC的预编译缓存的选项。</p>
+<pre><code># 开启服务端预编译
 useServerPrepStmts=true
 # 开启预编译缓存
 cachePrepStmts=true
 # 预编译缓存的sql条数，根据业务的sql条数判断，一般设置250即可
 prepStmtCacheSize=250
 # 预编译缓存sql语句长度大小，一般设置4096
-prepStmtCacheSqlLimit=4096</code></pre></div></article><div class=box-license>本文档创作遵循
-<a target=_blank href=https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh>「署名-非商业性使用-禁止演绎 4.0 国际版 (CC BY-NC-ND 4.0)」</a></div><div class=box-article-nav><a href=/posts/how-to-settle-order-with-time-zone/><i class="fa fa-chevron-left"></i><span>如何结算指定时区的订单</span></a>
-<a href=/posts/hashids/><span>hashids-内外标识符转换方案</span><i class="fa fa-chevron-right"></i></a></div></div></main></div><footer class="lay-footer box-footer"><span>Copyright
-&nbsp;&copy;
-&nbsp;2019-2020
-&nbsp;<a href=https://hankliuhuan.com/>写代码的招财猫</a>,
-&nbsp;All Rights Reserved.</span></footer><script src=//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/highlight.min.js></script><script>hljs.initHighlightingOnLoad();</script><script type=text/javascript src="/static/script.min.js?v=e95e58" integrity></script></body></html>
+prepStmtCacheSqlLimit=4096</code></pre>
+
+        </div>
+    </article>
+
+    <div class="box-license">
+    本文档创作遵循
+    <a target="_blank" href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh">
+        「署名-非商业性使用-禁止演绎 4.0 国际版 (CC BY-NC-ND 4.0)」
+    </a>
+</div>
+
+    <div class="box-article-nav">
+
+            
+            <a href="/posts/how-to-settle-order-with-time-zone/">
+                <i class="fa fa-chevron-left"></i><span>如何结算指定时区的订单</span>
+            </a>
+            
+
+            
+            <a href="/posts/hashids/">
+                <span>hashids-内外标识符转换方案</span><i class="fa fa-chevron-right"></i>
+            </a>
+            
+
+    </div>
+
+</div>
+
+        </main>
+    </div>
+    <footer class="lay-footer box-footer">
+        <span>
+            Copyright
+            &nbsp;&copy;
+            &nbsp;2019-2020
+            &nbsp;<a href="https://hankmew.com/">汉克喵</a>,
+            &nbsp;All Rights Reserved.
+        </span>
+    </footer>
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+    
+    <script type="text/javascript" src="/static/script.min.js?v=e95e58" integrity=""></script>
+</body>
+
+</html>

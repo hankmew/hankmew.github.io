@@ -1,9 +1,139 @@
-<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Standard Notes 个人云笔记 | 搬砖手账</title><link rel=icon type=image/x-icon><link rel=stylesheet href=//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css><link rel=stylesheet href=//cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css><link rel=stylesheet href=//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/styles/rainbow.min.css><link rel=stylesheet href="/static/style.min.css?v=822c8e" integrity media=screen></head><body><header class="lay-header box-header"></header><div class=lay-wrapper><aside class="lay-aside box-aside"><div class=box-shadow-without-top><div class=box-logo><a href=https://hankliuhuan.com/>搬砖手账</a><p>沉心营浮世，热血饮凉冰</p><div class=box-menu-toggle id=id-menu-toggle><button>
-<span></span><span></span><span></span></button></div></div><nav class="box-nav bg-white box-nav-min-hiden" id=id-menu><div><a href=/><i class="fa fa-fw fa-home fa-home"></i>Home</a></div><div><a href=/about><i class="fa fa-fw fa-home fa-user-md"></i>About</a></div><div class=box-nav-active><a href=/posts><i class="fa fa-fw fa-home fa-archive"></i>Archives</a></div><div><a href=/tags><i class="fa fa-fw fa-home fa-tag"></i>Tags</a></div></nav></div><div class="box-ref box-shadow bg-white" id=id-fix><div class=box-toc><nav id=TableOfContents><ul><li><a href=#背景>背景</a></li><li><a href=#方案>方案</a></li><li><a href=#部署服务端>部署服务端</a></li><li><a href=#使用https>使用HTTPS</a></li><li><a href=#客户端登录>客户端登录</a></li><li><a href=#安装插件>安装插件</a></li></ul></nav></div><div class=box-backtop id=id-backtop><i class="fa fa-arrow-up"></i><span></span></div></div></aside><main class="lay-main box-main"><div class="box-main-min bg-white box-main-padding box-shadow-without-top box-post"><article><div class=box-post-title>Standard Notes 个人云笔记</div><div class=box-post-meta><i class="fa fa-fw fa-calendar-check-o"></i>2019/10/31
-<span>|</span>
-<i class="fa fa-fw fa-keyboard-o"></i>2508
-<span>|</span>
-<i class="fa fa-fw fa-tags"></i>notes</div><div class=typ-article><h2 id=背景>背景</h2><p>作为一名程序员，笔者先后使用过不同的笔记软件，而且经常是几个月就更换一款。更换的原因一般都是在使用过后，逐渐觉得有些功能无法满足我的需求。遂重新寻找更好的替代方案。</p><p>在经历过Evernote、Simplenote、Leanote、有道云笔记、Joplin等笔记软件之后，我对笔记软件的需求逐渐清晰。我希望笔记软件对开发友好，必须有Markdown编辑器和代码编辑器，界面简洁美观，跨平台，版本回滚及备份，高效可靠云同步，传输和存储的加密功能。而Standard Notes完全满足笔者上述的需求。</p><p>更让笔者惊喜的是，这款笔记本完全满足想折腾不花钱和想花钱不折腾两类人的需求。Standard Notes的服务端和客户端都是开源免费的，但同时又提供收费的云服务。如果觉得文件存在云服务上不放心的话，可以自己搭建服务端。如果觉得使用官方提供的服务器更稳定，也可以选择购买套餐。</p><h2 id=方案>方案</h2><p>本着不折腾不舒服的原则（不想多花钱，想用知识省钱），笔者当然选择部署服务端的方案。这种方案优点不需要多花额外的费用，只需要前期花费一定的时间和精力去搭建服务端，且数据是使用自己的服务器进行同步和存储的，心理上有完全把控的感觉。</p><h2 id=部署服务端>部署服务端</h2><p>Standard File是Standard Notes的后端服务。首先它是一个官方给出的标准规范，官方网站是<a href=https://standardfile.org/>https://standardfile.org/</a>。同时官方还给出了一个使用Ruby实现的服务端程序<a href=https://github.com/standardfile/ruby-server>https://github.com/standardfile/ruby-server</a>。如果想更高级的折腾的话，完全可以使用自己熟悉的语言按照官方的标准规范开发自己的服务端。有人就是用Go语言实现了官方标准规范。源码在这<a href=https://github.com/dvbportal/standardfile>https://github.com/dvbportal/standardfile</a>。</p><p>笔者比较喜欢体积小的程序部署包，而且不想再增加一个数据库的中间件，所以就选择Go语言+SQLite实现的那款，完全能满足我当前阶段的使用。</p><p>笔者使用docker + docker-compose部署这款程序，镜像在这<a href=https://hub.docker.com/r/jetlabs/standardfile>https://hub.docker.com/r/jetlabs/standardfile</a>。</p><p>docker-compose.yml配置如下：</p><pre><code>version: &quot;3&quot;
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    
+    <title>Standard Notes 个人云笔记 | 搬砖手账</title>
+    
+    <link rel="icon" type="image/x-icon" />
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css" />
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/styles/rainbow.min.css" />
+    
+    
+    <link rel="stylesheet" href="/static/style.min.css?v=822c8e" integrity="" media="screen" />
+
+    
+</head>
+
+<body>
+    <header class="lay-header box-header"></header>
+    <div class="lay-wrapper">
+        <aside class="lay-aside box-aside">
+            <div class="box-shadow-without-top">
+                <div class="box-logo">
+    <a href="https://hankmew.com/">
+        搬砖手账
+    </a>
+    <p>沉心营浮世，热血饮凉冰</p>
+    <div class="box-menu-toggle" id="id-menu-toggle">
+        <button>
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+</div>
+<nav class="box-nav bg-white box-nav-min-hiden" id="id-menu">
+    
+    
+    
+    
+    
+    
+    
+    <div class="">
+        <a href="/">
+            <i class="fa fa-fw fa-home fa-home"></i>Home
+        </a>
+    </div>
+    
+    
+    
+    
+    
+    <div class="">
+        <a href="/about">
+            <i class="fa fa-fw fa-home fa-user-md"></i>About
+        </a>
+    </div>
+    
+    
+    
+    
+    
+    
+    
+    <div class="box-nav-active">
+        <a href="/posts">
+            <i class="fa fa-fw fa-home fa-archive"></i>Archives
+        </a>
+    </div>
+    
+    
+    
+    
+    
+    <div class="">
+        <a href="/tags">
+            <i class="fa fa-fw fa-home fa-tag"></i>Tags
+        </a>
+    </div>
+    
+</nav>
+            </div>
+            <div class="box-ref box-shadow bg-white" id="id-fix">
+                
+<div class="box-toc">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#背景">背景</a></li>
+    <li><a href="#方案">方案</a></li>
+    <li><a href="#部署服务端">部署服务端</a></li>
+    <li><a href="#使用https">使用HTTPS</a></li>
+    <li><a href="#客户端登录">客户端登录</a></li>
+    <li><a href="#安装插件">安装插件</a></li>
+  </ul>
+</nav>
+</div>
+
+                <div class="box-backtop" id="id-backtop">
+    <i class="fa fa-arrow-up"></i><span></span>
+</div>
+            </div>
+        </aside>
+        <main class="lay-main box-main">
+            
+<div class="box-main-min bg-white box-main-padding box-shadow-without-top box-post">
+    <article>
+        <div class="box-post-title">
+            Standard Notes 个人云笔记
+        </div>
+        <div class="box-post-meta">
+            <i class="fa fa-fw fa-calendar-check-o"></i>
+            2019/10/31
+            <span>|</span>
+            <i class="fa fa-fw fa-keyboard-o"></i>
+            2508
+            <span>|</span>
+            <i class="fa fa-fw fa-tags"></i>
+            notes
+        </div>
+        <div class="typ-article">
+            <h2 id="背景">背景</h2>
+<p>作为一名程序员，笔者先后使用过不同的笔记软件，而且经常是几个月就更换一款。更换的原因一般都是在使用过后，逐渐觉得有些功能无法满足我的需求。遂重新寻找更好的替代方案。</p>
+<p>在经历过Evernote、Simplenote、Leanote、有道云笔记、Joplin等笔记软件之后，我对笔记软件的需求逐渐清晰。我希望笔记软件对开发友好，必须有Markdown编辑器和代码编辑器，界面简洁美观，跨平台，版本回滚及备份，高效可靠云同步，传输和存储的加密功能。而Standard Notes完全满足笔者上述的需求。</p>
+<p>更让笔者惊喜的是，这款笔记本完全满足想折腾不花钱和想花钱不折腾两类人的需求。Standard Notes的服务端和客户端都是开源免费的，但同时又提供收费的云服务。如果觉得文件存在云服务上不放心的话，可以自己搭建服务端。如果觉得使用官方提供的服务器更稳定，也可以选择购买套餐。</p>
+<h2 id="方案">方案</h2>
+<p>本着不折腾不舒服的原则（不想多花钱，想用知识省钱），笔者当然选择部署服务端的方案。这种方案优点不需要多花额外的费用，只需要前期花费一定的时间和精力去搭建服务端，且数据是使用自己的服务器进行同步和存储的，心理上有完全把控的感觉。</p>
+<h2 id="部署服务端">部署服务端</h2>
+<p>Standard File是Standard Notes的后端服务。首先它是一个官方给出的标准规范，官方网站是<a href="https://standardfile.org/">https://standardfile.org/</a>。同时官方还给出了一个使用Ruby实现的服务端程序<a href="https://github.com/standardfile/ruby-server">https://github.com/standardfile/ruby-server</a>。如果想更高级的折腾的话，完全可以使用自己熟悉的语言按照官方的标准规范开发自己的服务端。有人就是用Go语言实现了官方标准规范。源码在这<a href="https://github.com/dvbportal/standardfile">https://github.com/dvbportal/standardfile</a>。</p>
+<p>笔者比较喜欢体积小的程序部署包，而且不想再增加一个数据库的中间件，所以就选择Go语言+SQLite实现的那款，完全能满足我当前阶段的使用。</p>
+<p>笔者使用docker + docker-compose部署这款程序，镜像在这<a href="https://hub.docker.com/r/jetlabs/standardfile">https://hub.docker.com/r/jetlabs/standardfile</a>。</p>
+<p>docker-compose.yml配置如下：</p>
+<pre><code>version: &quot;3&quot;
 services:
   standardfile:
     image: jetlabs/standardfile:0.3.2
@@ -11,10 +141,17 @@ services:
     restart: always
     volumes:
       - /mnt/data/standardfile:/stdfile/logs:rw
-</code></pre><p>注意volumes一节中/mnt/xxx可以根据实际情况修改成对应的路径。</p><p>最后使用<code>docker-compose up -d standardfile</code>启动</p><h2 id=使用https>使用HTTPS</h2><p>基于对传输安全的考虑，笔者决定使用https。但对于使用Nginx手动申请并配置证书的麻烦程度心有余悸。所以转而投入Caddy的怀抱。（Caddy默认https，配置简单，对于个人使用性能完全够用，尝鲜ing）</p><p>注意，本节的前提是拥有一个域名，同时设置二级域名并将A记录指向你的服务器</p><p>首先使用touch命令创建名为Caddyfile的配置文件，里面增加几行配置：</p><pre><code>sf.xxx.com {
+</code></pre><p>注意volumes一节中/mnt/xxx可以根据实际情况修改成对应的路径。</p>
+<p>最后使用<code>docker-compose up -d standardfile</code>启动</p>
+<h2 id="使用https">使用HTTPS</h2>
+<p>基于对传输安全的考虑，笔者决定使用https。但对于使用Nginx手动申请并配置证书的麻烦程度心有余悸。所以转而投入Caddy的怀抱。（Caddy默认https，配置简单，对于个人使用性能完全够用，尝鲜ing）</p>
+<p>注意，本节的前提是拥有一个域名，同时设置二级域名并将A记录指向你的服务器</p>
+<p>首先使用touch命令创建名为Caddyfile的配置文件，里面增加几行配置：</p>
+<pre><code>sf.xxx.com {
   proxy / http://standardfile:8888/api
 }
-</code></pre><p>然后在上一步中同一个docker-compose.yml中新增配置，整体配置如下：</p><pre><code>version: &quot;3&quot;
+</code></pre><p>然后在上一步中同一个docker-compose.yml中新增配置，整体配置如下：</p>
+<pre><code>version: &quot;3&quot;
 services:
   standardfile:
     image: jetlabs/standardfile:0.3.2
@@ -33,7 +170,17 @@ services:
       - /mnt/soft/docker-compose-yml/Caddyfile:/etc/Caddyfile:rw
       - /mnt/data/caddy/caddy:/root/.caddy:rw
       - /mnt/data/html:/srv:rw
-</code></pre><p>注意volumes一节中/mnt/xxx可以根据实际情况修改成对应的路径。</p><p>最后使用<code>docker-compose up -d caddy</code>启动</p><h2 id=客户端登录>客户端登录</h2><p>首先下载对应平台的Standard Notes客户端，下载地址<a href=https://standardnotes.org/>https://standardnotes.org/</a>，下载后安装并打开。</p><p>首先要注册用户。点击左下角的Account，在弹出的框中选择Register，输入邮箱、密码、确认密码，然后点击Advanced Options，在展开的Sync Server Domain字段中输入你在上一步中设置的域名如：https://sf.xxx.com</p><p>然后要登录。点击左下角的Account，在弹出的框中选择Sign In，输入注册成功的邮箱、密码，然后点击Advanced Options，在展开的Sync Server Domain字段中输入你在上一步中设置的域名如：https://sf.xxx.com</p><p>注意，笔记使用你的密码进行加密存储，且退出登录时会将本地数据清除。退出前最好使用其提供的Download Backup工具手动备份一下文件。</p><h2 id=安装插件>安装插件</h2><p>虽然官方提供的插件也是开源的，地址<a href=https://github.com/sn-extensions>https://github.com/sn-extensions</a>。但官方的安装方式却不是开源的，也需要自行搭建。比如我只使用advanced-markdown-editor和code-editor这两款插件。就可以在提供的releases页面下载打包好的Source Code。</p><p>将下载好的插件源码解压到服务器的某两个可读目录下。如/mnt/data/html/advanced-markdown-editor和/mnt/data/html/code-editor。然后修改caddy的配置文件Caddyfile，增加两个配置。</p><pre><code>sn-ame.xxx.com {
+</code></pre><p>注意volumes一节中/mnt/xxx可以根据实际情况修改成对应的路径。</p>
+<p>最后使用<code>docker-compose up -d caddy</code>启动</p>
+<h2 id="客户端登录">客户端登录</h2>
+<p>首先下载对应平台的Standard Notes客户端，下载地址<a href="https://standardnotes.org/">https://standardnotes.org/</a>，下载后安装并打开。</p>
+<p>首先要注册用户。点击左下角的Account，在弹出的框中选择Register，输入邮箱、密码、确认密码，然后点击Advanced Options，在展开的Sync Server Domain字段中输入你在上一步中设置的域名如：https://sf.xxx.com</p>
+<p>然后要登录。点击左下角的Account，在弹出的框中选择Sign In，输入注册成功的邮箱、密码，然后点击Advanced Options，在展开的Sync Server Domain字段中输入你在上一步中设置的域名如：https://sf.xxx.com</p>
+<p>注意，笔记使用你的密码进行加密存储，且退出登录时会将本地数据清除。退出前最好使用其提供的Download Backup工具手动备份一下文件。</p>
+<h2 id="安装插件">安装插件</h2>
+<p>虽然官方提供的插件也是开源的，地址<a href="https://github.com/sn-extensions">https://github.com/sn-extensions</a>。但官方的安装方式却不是开源的，也需要自行搭建。比如我只使用advanced-markdown-editor和code-editor这两款插件。就可以在提供的releases页面下载打包好的Source Code。</p>
+<p>将下载好的插件源码解压到服务器的某两个可读目录下。如/mnt/data/html/advanced-markdown-editor和/mnt/data/html/code-editor。然后修改caddy的配置文件Caddyfile，增加两个配置。</p>
+<pre><code>sn-ame.xxx.com {
   root /srv/advanced-markdown-editor
 }
 
@@ -41,7 +188,10 @@ sn-ce.xxx.com {
   root /srv/code-editor
 }
 
-</code></pre><p>注意，需要在域名管理页面创建sn-ame和sn-ce两个子域名，同时设置A记录指向服务器。</p><p>使用命令<code>docker-compose restart caddy</code>重启caddy。然后使用浏览器访问https://sn-ame.xxx.com，看是否已经可用。</p><p>在/mnt/data/html/advanced-markdown-editor目录下使用命令touch创建一个名为install的文本文件，并编辑增加配置：</p><pre><code>{
+</code></pre><p>注意，需要在域名管理页面创建sn-ame和sn-ce两个子域名，同时设置A记录指向服务器。</p>
+<p>使用命令<code>docker-compose restart caddy</code>重启caddy。然后使用浏览器访问https://sn-ame.xxx.com，看是否已经可用。</p>
+<p>在/mnt/data/html/advanced-markdown-editor目录下使用命令touch创建一个名为install的文本文件，并编辑增加配置：</p>
+<pre><code>{
   &quot;identifier&quot;: &quot;org.youth.advanced-markdown-editor&quot;,
   &quot;name&quot;: &quot;Advanced Markdown Editor&quot;,
   &quot;content_type&quot;: &quot;SN|Component&quot;,
@@ -54,7 +204,8 @@ sn-ce.xxx.com {
   &quot;marketing_url&quot;: &quot;https://standardnotes.org/extensions/advanced-markdown&quot;,
   &quot;thumbnail_url&quot;: &quot;https://s3.amazonaws.com/standard-notes/screenshots/models/editors/adv-markdown.jpg&quot;
 }
-</code></pre><p>在/mnt/data/html/code-editor目录下使用命令touch创建一个名为install的文本文件，并编辑增加配置：</p><pre><code>{
+</code></pre><p>在/mnt/data/html/code-editor目录下使用命令touch创建一个名为install的文本文件，并编辑增加配置：</p>
+<pre><code>{
   &quot;identifier&quot;: &quot;org.youth.code-editor&quot;,
   &quot;name&quot;: &quot;Code Editor&quot;,
   &quot;content_type&quot;: &quot;SN|Component&quot;,
@@ -67,10 +218,51 @@ sn-ce.xxx.com {
   &quot;marketing_url&quot;: &quot;https://standardnotes.org/extensions/code-editor&quot;,
   &quot;thumbnail_url&quot;: &quot;https://s3.amazonaws.com/standard-notes/screenshots/models/editors/code.jpg&quot;
 }
-</code></pre><p>最后点击Standard Notes下方的Extensions，然后点击Import Extension，输入<code>https://sn-ce.xxx.com/install</code>并回车，输入<code>https://sn-ame.xxx.com/install</code>并回车。</p><p>插件是多平台同步的，注意不要删除服务端已经部署的插件。</p></div></article><div class=box-license>本文档创作遵循
-<a target=_blank href=https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh>「署名-非商业性使用-禁止演绎 4.0 国际版 (CC BY-NC-ND 4.0)」</a></div><div class=box-article-nav>&ensp;
-<a href=/posts/how-to-settle-order-with-time-zone/><span>如何结算指定时区的订单</span><i class="fa fa-chevron-right"></i></a></div></div></main></div><footer class="lay-footer box-footer"><span>Copyright
-&nbsp;&copy;
-&nbsp;2019-2020
-&nbsp;<a href=https://hankliuhuan.com/>写代码的招财猫</a>,
-&nbsp;All Rights Reserved.</span></footer><script src=//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/highlight.min.js></script><script>hljs.initHighlightingOnLoad();</script><script type=text/javascript src="/static/script.min.js?v=e95e58" integrity></script></body></html>
+</code></pre><p>最后点击Standard Notes下方的Extensions，然后点击Import Extension，输入<code>https://sn-ce.xxx.com/install</code>并回车，输入<code>https://sn-ame.xxx.com/install</code>并回车。</p>
+<p>插件是多平台同步的，注意不要删除服务端已经部署的插件。</p>
+
+        </div>
+    </article>
+
+    <div class="box-license">
+    本文档创作遵循
+    <a target="_blank" href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh">
+        「署名-非商业性使用-禁止演绎 4.0 国际版 (CC BY-NC-ND 4.0)」
+    </a>
+</div>
+
+    <div class="box-article-nav">
+
+            
+            &ensp;
+            
+
+            
+            <a href="/posts/how-to-settle-order-with-time-zone/">
+                <span>如何结算指定时区的订单</span><i class="fa fa-chevron-right"></i>
+            </a>
+            
+
+    </div>
+
+</div>
+
+        </main>
+    </div>
+    <footer class="lay-footer box-footer">
+        <span>
+            Copyright
+            &nbsp;&copy;
+            &nbsp;2019-2020
+            &nbsp;<a href="https://hankmew.com/">汉克喵</a>,
+            &nbsp;All Rights Reserved.
+        </span>
+    </footer>
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+    
+    <script type="text/javascript" src="/static/script.min.js?v=e95e58" integrity=""></script>
+</body>
+
+</html>
