@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Trilium Notes 个人云笔记 | 搬砖手账</title><link rel=icon type=image/x-icon><link rel=stylesheet href=//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css><link rel=stylesheet href=//cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css><link rel=stylesheet href=//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/styles/rainbow.min.css><link rel=stylesheet href="/static/style.min.css?v=822c8e" integrity media=screen></head><body><header class="lay-header box-header"></header><div class=lay-wrapper><aside class="lay-aside box-aside"><div class=box-shadow-without-top><div class=box-logo><a href=https://hankmew.com/>搬砖手账</a><p>沉心营浮世，热血饮凉冰</p><div class=box-menu-toggle id=id-menu-toggle><button>
+<span></span><span></span><span></span></button></div></div><nav class="box-nav bg-white box-nav-min-hiden" id=id-menu><div><a href=/><i class="fa fa-fw fa-home fa-home"></i>Home</a></div><div><a href=/about><i class="fa fa-fw fa-home fa-user-md"></i>About</a></div><div class=box-nav-active><a href=/posts><i class="fa fa-fw fa-home fa-archive"></i>Archives</a></div><div><a href=/tags><i class="fa fa-fw fa-home fa-tag"></i>Tags</a></div></nav></div><div class="box-ref box-shadow bg-white" id=id-fix><div class=box-toc><nav id=TableOfContents><ul><li><a href=#背景>背景</a></li><li><a href=#方案>方案</a></li><li><a href=#部署服务端>部署服务端</a></li><li><a href=#使用https>使用HTTPS</a></li><li><a href=#客户端登录>客户端登录</a></li></ul></nav></div><div class=box-backtop id=id-backtop><i class="fa fa-arrow-up"></i><span></span></div></div></aside><main class="lay-main box-main"><div class="box-main-min bg-white box-main-padding box-shadow-without-top box-post"><article><div class=box-post-title>Trilium Notes 个人云笔记</div><div class=box-post-meta><i class="fa fa-fw fa-calendar-check-o"></i>2021/01/11
+<span>|</span>
+<i class="fa fa-fw fa-keyboard-o"></i>1096
+<span>|</span>
+<i class="fa fa-fw fa-tags"></i>notes</div><div class=typ-article><h2 id=背景>背景</h2><p>作为一名程序员，笔者先后使用过不同的笔记软件，而且经常是几个月就更换一款。更换的原因一般都是在使用过后，逐渐觉得有些功能无法满足我的需求。遂重新寻找更好的替代方案。</p><p>在经历过Evernote、Simplenote、Leanote、有道云笔记、Joplin、Standard Notes、Notion等笔记软件之后，我对笔记软件的需求逐渐清晰。我希望笔记软件对开发者友好，必须有Markdown编辑器和富文本编辑器，界面简洁美观，跨平台，版本回滚及备份，高效可靠云同步，传输和存储的加密功能。而Trilium Notes完全满足笔者上述的需求。</p><h2 id=方案>方案</h2><p>本着不折腾不舒服的原则（不想多花钱，想用知识省钱），只需要前期花费一定的时间和精力去搭建服务端，且数据是使用自己的服务器进行同步和存储的，心理上有完全把控的感觉。</p><h2 id=部署服务端>部署服务端</h2><p>Trilium Notes提供了Docker镜像，可直接使用Docker部署在服务端。</p><p>笔者使用docker + docker-compose部署这款程序，镜像在这https://hub.docker.com/r/zadam/trilium 。</p><p>docker-compose.yml配置如下：</p><pre><code>version: &quot;3&quot;
+services:
+  note:
+    container_name: note
+    restart: always
+    image: zadam/trilium:0.45-latest
+    expose:
+      - 8080
+    environment:
+      - TRILIUM_DATA_DIR=/data
+    volumes:
+      - ./volume/note:/data:rw
+</code></pre><p>注意volumes一节中/mnt/xxx可以根据实际情况修改成对应的路径。</p><p>最后使用<code>docker-compose up -d note</code>启动</p><h2 id=使用https>使用HTTPS</h2><p>基于对传输安全的考虑，笔者决定使用https。但对于使用Nginx手动申请并配置证书的麻烦程度心有余悸。所以转而投入Caddy2的怀抱。（Caddy2默认https，配置简单，对于个人使用性能完全够用，尝鲜ing）</p><p>注意，本节的前提是拥有一个域名，同时设置二级域名并将A记录指向你的服务器</p><p>首先创建名为Caddyfile的配置文件，里面增加几行配置：</p><pre><code>note.xxx.com {
+  encode gzip
+  reverse_proxy note:8080
+}
+</code></pre><p>然后在上一步中同一个docker-compose.yml中新增配置，整体配置如下：</p><pre><code>version: &quot;3&quot;
+services:
+  note:
+    container_name: note
+    restart: always
+    image: zadam/trilium:0.45-latest
+    expose:
+      - 8080
+    environment:
+      - TRILIUM_DATA_DIR=/data
+    volumes:
+      - ./volume/note:/data:rw
+  caddy:
+    container_name: caddy
+    restart: always
+    image: caddy:2.0.0-alpine
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./etc/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./volume/caddy:/data/caddy:rw
+</code></pre><p>注意volumes一节中/mnt/xxx可以根据实际情况修改成对应的路径。</p><p>最后使用<code>docker-compose up -d caddy</code>启动</p><p>之后就可以访问https://note.xxx.com看到登录页面了。</p><h2 id=客户端登录>客户端登录</h2><p>首先下载对应平台的Standard Notes客户端，下载地址https://github.com/zadam/trilium/releases，下载后安装并打开。</p><p>然后通过设置 Menu - Options - Sync下面的Server instance address为上一步中设置的https://note.xxxx.com即可将本地同步到服务端了。</p></div></article><div class=box-license>本文档创作遵循
+<a target=_blank href=https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh>「署名-非商业性使用-禁止演绎 4.0 国际版 (CC BY-NC-ND 4.0)」</a></div><div class=box-article-nav>&ensp;
+<a href=/posts/how-to-settle-order-with-time-zone/><span>如何结算指定时区的订单</span><i class="fa fa-chevron-right"></i></a></div></div></main></div><footer class="lay-footer box-footer"><span>Copyright
+&nbsp;&copy;
+&nbsp;2019-2021
+&nbsp;<a href=https://hankmew.com/>汉克喵</a>,
+&nbsp;All Rights Reserved.</span></footer><script src=//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/highlight.min.js></script><script>hljs.initHighlightingOnLoad();</script><script type=text/javascript src="/static/script.min.js?v=e95e58" integrity></script></body></html>
