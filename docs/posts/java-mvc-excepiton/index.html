@@ -1,0 +1,175 @@
+<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>MVC模式下的业务异常处理 | 搬砖手账</title><link rel=icon type=image/x-icon><link rel=stylesheet href=//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css><link rel=stylesheet href=//cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css><link rel=stylesheet href=//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/styles/rainbow.min.css><link rel=stylesheet href="/static/style.min.css?v=fd2144" integrity media=screen></head><body><header class="lay-header box-header"></header><div class=lay-wrapper><aside class="lay-aside box-aside"><div class=box-shadow-without-top><div class=box-logo><a href=https://hankmew.com/>搬砖手账</a><p>沉心营浮世，热血饮凉冰</p><div class=box-menu-toggle id=id-menu-toggle><button>
+<span></span><span></span><span></span></button></div></div><nav class="box-nav bg-white box-nav-min-hiden" id=id-menu><div><a href=/><i class="fa fa-fw fa-home fa-home"></i>Home</a></div><div><a href=/about><i class="fa fa-fw fa-home fa-user-md"></i>About</a></div><div class=box-nav-active><a href=/posts><i class="fa fa-fw fa-home fa-archive"></i>Archives</a></div><div><a href=/tags><i class="fa fa-fw fa-home fa-tag"></i>Tags</a></div></nav></div><div class="box-ref box-shadow bg-white" id=id-fix><div class=box-toc><nav id=TableOfContents><ul><li><a href=#异常与状态码>异常与状态码</a></li><li><a href=#业务流程控制>业务流程控制</a></li><li><a href=#result的简单实现>Result的简单实现</a></li><li><a href=#一些尾巴>一些尾巴</a></li></ul></nav></div><div class=box-backtop id=id-backtop><i class="fa fa-arrow-up"></i><span></span></div></div></aside><main class="lay-main box-main"><div class="box-main-min bg-white box-main-padding box-shadow-without-top box-post"><article><div class=box-post-title>MVC模式下的业务异常处理</div><div class=box-post-meta><i class="fa fa-fw fa-calendar-check-o"></i>2021/01/31
+<span>|</span>
+<i class="fa fa-fw fa-keyboard-o"></i>2535
+<span>|</span>
+<i class="fa fa-fw fa-tags"></i>java, exception, result</div><div class=typ-article><h2 id=异常与状态码>异常与状态码</h2><p>所有的编程语言，在设计function的时候，都需要思考一个问题：如何管理function的执行状态和返回数据。所谓执行状态，可以理解成这个function是否处理成功。而返回数据是调用方需要获取到的业务值。一般情况下，只有执行状态为成功时才会有正常的返回数据。</p><p><strong>举个栗子</strong>。A除以B等于C，可以用一个function封装。A和B自然是入参，C是返回结果。伪代码可以这样编写</p><pre><code>C divide(A, B) {
+  return A / B;
+}
+</code></pre><p>一般情况下这个function的执行状态是正常的，返回数据C可以让调用方直接使用。但我们知道，除法中除数不能为0，如果为0，则结果无意义。因此这个function中必须增加B不能等于0的判断。</p><pre><code>C divide(A, B) {
+  if B == 0 {
+    ????
+  }
+  return A / B;
+}
+</code></pre><p>如果B等于0，这个function就应该视为执行失败了，返回的数据C对于调用方没有了意义（不应该为任何一个值）。这种情况下，应该使用什么机制去通知调用方呢？</p><p>不同编程语言有自己的设计模式。总结起来有两种：<strong>异常</strong>、<strong>状态码</strong>。</p><p>使用异常模式，function可以这样处理：</p><ol><li>正常则返回数据，否则抛出异常状态。（直接或间接调用方处理捕获异常并处理）</li></ol><p>使用状态码模式，function可以这样处理：</p><ol><li>返回只有状态没有数据。（执行状态就是返回结果）</li><li>返回既表示数据又表示状态。（比如null代表错误状态、非null代表数据值，比如<strong>对象封装了状态和结果</strong>）</li><li>返回只代表数据，全局参数代表状态（操作类变量、形参修改实参等）</li><li>返回只代表状态，全局参数代表数据（操作类变量、形参修改实参等）</li><li>多返回值（go/python等，一个值代表状态、其他值代表数据）</li><li>终止程序 （调用方和被调用方都不用关心状态和数据了）</li></ol><h2 id=业务流程控制>业务流程控制</h2><p>Java使用的是异常机制，而且其实现非常强大。throw和try-catch-finally关键字作为异常传输通道的起点和终点，Throwable类作为异常的类型。这种思想在Java语言下可以应对多变的编码需求。</p><p>这里以一个经典的用户注册业务为例，在MVC模式下编写代码。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#75715e>// dal层向用户表插入一条记录，并返回userId
+</span><span style=color:#75715e></span><span style=color:#66d9ef>public</span> Long <span style=color:#a6e22e>insertUser</span><span style=color:#f92672>(</span>UserInfo userInfo<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+    Long userId <span style=color:#f92672>=</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>;</span>
+    <span style=color:#66d9ef>try</span> <span style=color:#f92672>{</span>
+        userId <span style=color:#f92672>=</span> userInfoMapper<span style=color:#f92672>.</span><span style=color:#a6e22e>insert</span><span style=color:#f92672>(</span>userInfo<span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span><span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>MySQLIntegrityConstraintViolationException e<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        log<span style=color:#f92672>.</span><span style=color:#a6e22e>warm</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;insert user error, duplicate entry {}&#34;</span><span style=color:#f92672>,</span> userInfo<span style=color:#f92672>,</span> e<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>throw</span> <span style=color:#66d9ef>new</span> BizException<span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>DB_DUPLICATE</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span><span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>Exception e<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        log<span style=color:#f92672>.</span><span style=color:#a6e22e>error</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;insert user error, {}&#34;</span><span style=color:#f92672>,</span> userInfo<span style=color:#f92672>,</span> e<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>throw</span> <span style=color:#66d9ef>new</span> BizException<span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>ERROR</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>userId <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span> <span style=color:#f92672>||</span> userId <span style=color:#f92672>&lt;=</span> 0<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        log<span style=color:#f92672>.</span><span style=color:#a6e22e>error</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;insert user error, userId is illegal {}&#34;</span><span style=color:#f92672>,</span> userInfo<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>throw</span> <span style=color:#66d9ef>new</span> BizException<span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>ERROR</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>return</span> userId<span style=color:#f92672>;</span>
+<span style=color:#f92672>}</span>
+
+<span style=color:#75715e>// service层调用dal层向db插入一条记录并获得userId,然后广播用户注册的消息
+</span><span style=color:#75715e></span><span style=color:#66d9ef>public</span> Long <span style=color:#a6e22e>addUser</span><span style=color:#f92672>(</span>UserInfo userInfo<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+    Long userId <span style=color:#f92672>=</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>;</span>
+    <span style=color:#66d9ef>try</span> <span style=color:#f92672>{</span>
+        userId <span style=color:#f92672>=</span> insertUser<span style=color:#f92672>(</span>userInfo<span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span><span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>BizException e<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>DB_DUPLICATE</span><span style=color:#f92672>.</span><span style=color:#a6e22e>equals</span><span style=color:#f92672>(</span>e<span style=color:#f92672>.</span><span style=color:#a6e22e>getState</span><span style=color:#f92672>()))</span> <span style=color:#f92672>{</span>
+            <span style=color:#75715e>// 抛出用户已存在的异常，让上层转换成给用户看的状态码和提示语
+</span><span style=color:#75715e></span>            <span style=color:#66d9ef>throw</span> <span style=color:#66d9ef>new</span> BizException<span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>USER_ALREADY_EXISTS</span><span style=color:#f92672>);</span>
+        <span style=color:#f92672>}</span>
+        <span style=color:#66d9ef>throw</span> <span style=color:#66d9ef>new</span> BizException<span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>ERROR</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+  
+    <span style=color:#75715e>// 向mq发送广播消息，消费者异步发放新用户奖励。
+</span><span style=color:#75715e></span>    mq<span style=color:#f92672>.</span><span style=color:#a6e22e>send</span><span style=color:#f92672>(</span>userId<span style=color:#f92672>);</span>
+  
+    <span style=color:#75715e>// 返回userId
+</span><span style=color:#75715e></span>    <span style=color:#66d9ef>return</span> userId<span style=color:#f92672>;</span>
+<span style=color:#f92672>}</span>
+</code></pre></div><p>实际业务场景肯定会比上述代码复杂，这里做了精简以便于展现主要矛盾。我们将关注点放到service层的addUser方法中，业务代码由于使用异常存在如下几个问题：</p><ol><li>流程控制的手段不仅有if-else还有try-catch，一个业务由两种方式控制跳转，使得逻辑编写和理解变得复杂且容易出错。</li><li>“注册的用户已存在”，这种纯业务逻辑，使用异常机制处理究竟合不合理。这里不做展开讨论。</li><li>异常允许向上传递多层，但却没有明确在哪层处理的权责划分，会存在每层都try-catch的极端情况。</li></ol><p>我们尝试改为状态码模式看看效果。让dal层返回一个Result对象，里面包含了返回数据和调用状态。而service层仅使用if-else对Result对象进行判断。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#75715e>// dal层向用户表插入一条记录，并返回userId
+</span><span style=color:#75715e></span><span style=color:#66d9ef>public</span> Result<span style=color:#f92672>&lt;</span>Long<span style=color:#f92672>&gt;</span> <span style=color:#a6e22e>insertUser</span><span style=color:#f92672>(</span>UserInfo userInfo<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+    Long userId <span style=color:#f92672>=</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>;</span>
+    <span style=color:#66d9ef>try</span> <span style=color:#f92672>{</span>
+        userId <span style=color:#f92672>=</span> userInfoMapper<span style=color:#f92672>.</span><span style=color:#a6e22e>insert</span><span style=color:#f92672>(</span>userInfo<span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span><span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>MySQLIntegrityConstraintViolationException e<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        log<span style=color:#f92672>.</span><span style=color:#a6e22e>warm</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;insert user error, duplicate entry {}&#34;</span><span style=color:#f92672>,</span> userInfo<span style=color:#f92672>,</span> e<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>return</span> Result<span style=color:#f92672>.</span><span style=color:#a6e22e>failure</span><span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>DB_DUPLICATE</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span><span style=color:#66d9ef>catch</span> <span style=color:#f92672>(</span>Exception e<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        log<span style=color:#f92672>.</span><span style=color:#a6e22e>error</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;insert user error, {}&#34;</span><span style=color:#f92672>,</span> userInfo<span style=color:#f92672>,</span> e<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>return</span> Result<span style=color:#f92672>.</span><span style=color:#a6e22e>failure</span><span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>ERROR</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>userId <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span> <span style=color:#f92672>||</span> userId <span style=color:#f92672>&lt;=</span> 0<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        log<span style=color:#f92672>.</span><span style=color:#a6e22e>error</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;insert user error, userId is illegal {}&#34;</span><span style=color:#f92672>,</span> userInfo<span style=color:#f92672>);</span>
+        <span style=color:#66d9ef>return</span> Result<span style=color:#f92672>.</span><span style=color:#a6e22e>failure</span><span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>ERROR</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>return</span> Result<span style=color:#f92672>.</span><span style=color:#a6e22e>success</span><span style=color:#f92672>(</span>userId<span style=color:#f92672>);</span>
+<span style=color:#f92672>}</span>
+
+<span style=color:#75715e>// service层调用dal层向db插入一条记录并获得userId,然后广播用户注册的消息
+</span><span style=color:#75715e></span><span style=color:#66d9ef>public</span> Result<span style=color:#f92672>&lt;</span>Long<span style=color:#f92672>&gt;</span> <span style=color:#a6e22e>addUser</span><span style=color:#f92672>(</span>UserInfo userInfo<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+    Result res <span style=color:#f92672>=</span> insertUser<span style=color:#f92672>(</span>userInfo<span style=color:#f92672>);</span>
+    <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>res<span style=color:#f92672>.</span><span style=color:#a6e22e>isFailure</span><span style=color:#f92672>())</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>res<span style=color:#f92672>.</span><span style=color:#a6e22e>isFailureEquals</span><span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>DB_DUPLICATE</span><span style=color:#f92672>))</span> <span style=color:#f92672>{</span>
+            <span style=color:#75715e>// 返回用户已经存在的业务状态，让上层转换成给用户看的状态码和提示语
+</span><span style=color:#75715e></span>            <span style=color:#66d9ef>return</span> Result<span style=color:#f92672>.</span><span style=color:#a6e22e>failure</span><span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>USER_ALREADY_EXISTS</span><span style=color:#f92672>);</span>
+        <span style=color:#f92672>}</span>
+        <span style=color:#66d9ef>return</span> Result<span style=color:#f92672>.</span><span style=color:#a6e22e>failure</span><span style=color:#f92672>(</span>BizState<span style=color:#f92672>.</span><span style=color:#a6e22e>ERROR</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+  
+    <span style=color:#75715e>// 向mq发送广播消息，消费者异步发放新用户奖励。
+</span><span style=color:#75715e></span>    mq<span style=color:#f92672>.</span><span style=color:#a6e22e>send</span><span style=color:#f92672>(</span>res<span style=color:#f92672>.</span><span style=color:#a6e22e>getData</span><span style=color:#f92672>)</span>
+    
+    <span style=color:#75715e>// 返回userId
+</span><span style=color:#75715e></span>    <span style=color:#66d9ef>return</span> userId<span style=color:#f92672>;</span>
+<span style=color:#f92672>}</span>
+</code></pre></div><p>与使用异常模式的代码相比，状态码模式的dal层和service层责任没有变，dal层仍然是向数据库中写入数据，service层作为业务编排串行调用dal层和mq层。而主要的变化点有：</p><ol><li><p>数据库的异常完全在dal层捕获，不上抛到业务层，只将外部错误都转换为会影响内部业务的状态。</p></li><li><p>dal层与service层通过Result对象返回结果。且Result对象中既有数据又有状态。</p></li><li><p>service层只需要使用if-else判断获取到的状态即可。</p></li><li><p>service层先判断异常情况并提前处理。且正常流程都在一个缩进中完成，非正常流程在次级缩进中完成。</p></li></ol><p><strong>状态码模式让流程控制变得简洁易读，更适合MVC模式下的业务逻辑处理</strong></p><h2 id=result的简单实现>Result的简单实现</h2><p>这里对Result进行了简单实现，供大家参考。</p><p><strong>Result</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>class</span> <span style=color:#a6e22e>Result</span><span style=color:#f92672>&lt;</span>T<span style=color:#f92672>&gt;</span> <span style=color:#f92672>{</span>
+    <span style=color:#66d9ef>private</span> <span style=color:#66d9ef>final</span> T data<span style=color:#f92672>;</span>
+    <span style=color:#66d9ef>private</span> <span style=color:#66d9ef>final</span> Status status<span style=color:#f92672>;</span>
+
+    <span style=color:#75715e>/* 创建 */</span>
+    <span style=color:#66d9ef>private</span> <span style=color:#a6e22e>Result</span><span style=color:#f92672>(</span>T data<span style=color:#f92672>,</span> Status status<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>data</span> <span style=color:#f92672>=</span> data<span style=color:#f92672>;</span>
+        <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>status</span> <span style=color:#f92672>=</span> status<span style=color:#f92672>;</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>static</span><span style=color:#f92672>&lt;</span>T<span style=color:#f92672>&gt;</span> Result<span style=color:#f92672>&lt;</span>T<span style=color:#f92672>&gt;</span> <span style=color:#a6e22e>success</span><span style=color:#f92672>(</span>T data<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>new</span> Result<span style=color:#f92672>&lt;&gt;(</span>data<span style=color:#f92672>,</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>static</span><span style=color:#f92672>&lt;</span>T<span style=color:#f92672>&gt;</span> Result<span style=color:#f92672>&lt;</span>T<span style=color:#f92672>&gt;</span> <span style=color:#a6e22e>failure</span><span style=color:#f92672>(</span>Status status<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>new</span> Result<span style=color:#f92672>&lt;&gt;(</span><span style=color:#66d9ef>null</span><span style=color:#f92672>,</span> status<span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>static</span><span style=color:#f92672>&lt;</span>T<span style=color:#f92672>&gt;</span> Result<span style=color:#f92672>&lt;</span>T<span style=color:#f92672>&gt;</span> <span style=color:#a6e22e>failure</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>new</span> Result<span style=color:#f92672>&lt;&gt;(</span><span style=color:#66d9ef>null</span><span style=color:#f92672>,</span> BasicStatus<span style=color:#f92672>.</span><span style=color:#a6e22e>FAILURE</span><span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+  
+    <span style=color:#75715e>/* 状态 */</span>
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>boolean</span> <span style=color:#a6e22e>isSuccess</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>status</span> <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>;</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>boolean</span> <span style=color:#a6e22e>isFailure</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>status</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>;</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>boolean</span> <span style=color:#a6e22e>isFailureEquals</span><span style=color:#f92672>(</span>Status status<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>status</span> <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+            <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>false</span><span style=color:#f92672>;</span>
+        <span style=color:#f92672>}</span>
+        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>status</span><span style=color:#f92672>.</span><span style=color:#a6e22e>equals</span><span style=color:#f92672>(</span>status<span style=color:#f92672>);</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>boolean</span> <span style=color:#a6e22e>isEmpty</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>data</span> <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+            <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>true</span><span style=color:#f92672>;</span>
+        <span style=color:#f92672>}</span><span style=color:#66d9ef>else</span> <span style=color:#f92672>{</span>
+            <span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span><span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>data</span> <span style=color:#66d9ef>instanceof</span> Collection<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+                <span style=color:#66d9ef>return</span> <span style=color:#f92672>((</span>Collection<span style=color:#f92672>&lt;?&gt;)</span> <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>data</span><span style=color:#f92672>).</span><span style=color:#a6e22e>isEmpty</span><span style=color:#f92672>();</span>
+            <span style=color:#f92672>}</span><span style=color:#66d9ef>else</span> <span style=color:#f92672>{</span>
+                <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>false</span><span style=color:#f92672>;</span>
+            <span style=color:#f92672>}</span>
+        <span style=color:#f92672>}</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>boolean</span> <span style=color:#a6e22e>notEmpty</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> <span style=color:#f92672>!</span>isEmpty<span style=color:#f92672>();</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#75715e>/* 获取 */</span>
+    <span style=color:#66d9ef>public</span> T <span style=color:#a6e22e>get</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>data</span><span style=color:#f92672>;</span>
+    <span style=color:#f92672>}</span>
+    <span style=color:#66d9ef>public</span> T <span style=color:#a6e22e>getDefault</span><span style=color:#f92672>(</span>T defaultData<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> isEmpty<span style=color:#f92672>()</span> <span style=color:#f92672>?</span> defaultData <span style=color:#f92672>:</span> <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>data</span><span style=color:#f92672>;</span>
+    <span style=color:#f92672>}</span>
+
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>interface</span> <span style=color:#a6e22e>Status</span> <span style=color:#f92672>{</span>
+      
+    <span style=color:#f92672>}</span>
+
+    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>enum</span> BasicStatus <span style=color:#66d9ef>implements</span> Result<span style=color:#f92672>.</span><span style=color:#a6e22e>Status</span> <span style=color:#f92672>{</span>
+        FAILURE<span style=color:#f92672>,</span> <span style=color:#75715e>//未知系统异常，出现无法恢复的都使用这个状态即可
+</span><span style=color:#75715e></span>        <span style=color:#f92672>;</span>
+    <span style=color:#f92672>}</span>
+<span style=color:#f92672>}</span>
+</code></pre></div><p><strong>业务状态枚举类</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>enum</span> BizStatus <span style=color:#66d9ef>implements</span> Result<span style=color:#f92672>.</span><span style=color:#a6e22e>Status</span> <span style=color:#f92672>{</span>
+    INTERNAL_SERVER_ERROR<span style=color:#f92672>(-</span>1<span style=color:#f92672>),</span>
+    OK<span style=color:#f92672>(</span>0<span style=color:#f92672>),</span>
+    PARAM_ERROR<span style=color:#f92672>(</span>1<span style=color:#f92672>),</span>
+    USER_NOT_EXIST<span style=color:#f92672>(</span>2<span style=color:#f92672>),</span>
+    <span style=color:#f92672>;</span>
+
+    <span style=color:#66d9ef>private</span> <span style=color:#66d9ef>final</span> Integer code<span style=color:#f92672>;</span>
+
+    BizStatus<span style=color:#f92672>(</span>Integer code<span style=color:#f92672>)</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>this</span><span style=color:#f92672>.</span><span style=color:#a6e22e>code</span> <span style=color:#f92672>=</span> code<span style=color:#f92672>;</span>
+    <span style=color:#f92672>}</span>
+
+    <span style=color:#66d9ef>public</span> Integer <span style=color:#a6e22e>getCode</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span>
+        <span style=color:#66d9ef>return</span> code<span style=color:#f92672>;</span>
+    <span style=color:#f92672>}</span>
+<span style=color:#f92672>}</span>
+</code></pre></div><h2 id=一些尾巴>一些尾巴</h2><p>如果业务比较复杂，会出现业务层内有多级方法调用的情况，每层都返回Result结果，每层都要对Result结果进行判断。最终的形式可能与判断变量是否等于null相同了（其实更像golang的if err != nil）。但仍然比每层都要try-catch这种极端形式要好的多。</p><p>在一些语言纯粹性的狂热信徒眼中，Result模式对异常机制的亵渎，是状态对数据的污染，是开语言发展的倒车。我觉得这种批判大可不必，我始终认为能让程序员更简单的理解和编写代码的模式，才是好模式。</p><p>Java是一款优秀的编程语言，它的异常机制非常强大，可以编写出非常好用的依赖包、APP、中间件、Web服务等等。而本文仅对MVC模式下的业务层代码进行讨论，提出了Result模式会更方便开发的思路。欢迎大家提出自己的宝贵意见和建议，我们大家一起讨论一起成长。</p></div></article><div class=box-license>本文档创作遵循
+<a target=_blank href=https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh>「署名-非商业性使用-禁止演绎 4.0 国际版 (CC BY-NC-ND 4.0)」</a></div><div class=box-article-nav>&ensp;
+<a href=/posts/trilium-notes/><span>Trilium Notes 个人云笔记</span><i class="fa fa-chevron-right"></i></a></div></div></main></div><footer class="lay-footer box-footer"><span>Copyright
+&nbsp;&copy;
+&nbsp;2019-2021
+&nbsp;<a href=https://hankmew.com/>汉克喵</a>,
+&nbsp;All Rights Reserved.</span></footer><script src=//cdn.jsdelivr.net/gh/highlightjs/cdn-release@10.1.2/build/highlight.min.js></script><script>hljs.initHighlightingOnLoad();</script><script type=text/javascript src="/static/script.min.js?v=e95e58" integrity></script></body></html>
