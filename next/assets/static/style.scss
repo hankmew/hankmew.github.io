@@ -573,6 +573,10 @@ ul {
     li {
         display: list-item;
         text-align: -webkit-match-parent;
+
+        p {
+            margin: 0;
+        }
     }
 
     p {
